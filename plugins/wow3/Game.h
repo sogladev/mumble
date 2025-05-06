@@ -3,45 +3,57 @@
 // that can be found in the LICENSE file at the root of the
 // Mumble source tree or at <https://www.mumble.info/LICENSE>.
 
-#ifndef GTAV_GAME_H_
-#define GTAV_GAME_H_
-
-#include "structs.h"
+#ifndef WOW3_GAME_H_
+#define WOW3_GAME_H_
 
 #include "ProcessWindows.h"
 #define MUMBLE_PLUGIN_NO_DEFAULT_FUNCTION_DEFINITIONS
 #include "MumblePlugin.h"
 #undef MUMBLE_PLUGIN_NO_DEFAULT_FUNCTION_DEFINITIONS
 
+#include <string>
+#include <array>
+
+using Vector3f = std::array<float, 3>;
+
 class Game {
 public:
-	Mumble_PositionalDataErrorCode init();
+    Mumble_PositionalDataErrorCode init();
+	//
+    // Read game state
+    uint8_t getPlayerState() const;
+    Vector3f getAvatarPosition() const;
+    float getAvatarHeading() const;
+    Vector3f getCameraPosition() const;
+    Vector3f getCameraFront() const;
+    Vector3f getCameraTop() const;
+    const char* getPlayerName() const;
+    uint32_t getMapId() const;
+    uint64_t getLeaderGuid() const;
 
-	static constexpr bool isMultiplayer(const CNetworkPlayerMgr &mgr) { return mgr.player; }
+    // Generate identity string
+    const std::string& getIdentity();
 
-	CNetworkPlayerMgr playerMgr() const { return m_proc.peek< CNetworkPlayerMgr >(m_playerMgr); }
+    // Generate context string
+    const std::string& getContext();
 
-	CNetGamePlayer player(const CNetworkPlayerMgr &manager) const {
-		return m_proc.peek< CNetGamePlayer >(manager.player);
-	}
-
-	CPlayerInfo playerInfo(const CNetGamePlayer &player) const { return m_proc.peek< CPlayerInfo >(player.info); }
-
-	CPed playerEntity(const CPlayerInfo &info) const { return m_proc.peek< CPed >(info.ped); }
-
-	CPlayerAngles playerAngles() const;
-
-	const std::string &identity(const CNetGamePlayer &player, const CPlayerInfo &info, const CPed &entity);
-
-	Game(const procid_t id, const std::string &name);
+    Game(const procid_t id, const std::string &name);
 
 protected:
-	bool setupPointers(const Module &module);
+    // Static memory addresses for WoW
+    static constexpr procptr_t STATE_ADDRESS          = 0x00BD0792;
+    static constexpr procptr_t AVATAR_POS_ADDRESS     = 0x00ADF4E4;
+    static constexpr procptr_t AVATAR_HEADING_ADDRESS = 0x00BEBA70;
+    static constexpr procptr_t CAMERA_POS_ADDRESS     = 0x00ADF4E4;
+    static constexpr procptr_t CAMERA_FRONT_ADDRESS   = 0x00ADF5F0;
+    static constexpr procptr_t CAMERA_TOP_ADDRESS     = 0x00ADF554;
+    static constexpr procptr_t PLAYER_ADDRESS         = 0x00C79D18;
+    static constexpr procptr_t MAPID_ADDRESS          = 0x00AB63BC;
+    static constexpr procptr_t LEADERGUID_ADDRESS     = 0x00BD1968;
 
-	ptr_t m_playerMgr;
-	ptr_t m_cameraMgr;
-	std::string m_identity;
-	ProcessWindows m_proc;
+    std::string m_identity;
+    std::string m_context;
+    ProcessWindows m_proc;
 };
 
 #endif
