@@ -24,14 +24,5 @@ else()
 	target_sources(wow3 PRIVATE "../HostLinux.cpp")
 endif()
 
-# Define macros and include required headers
-target_compile_definitions(wow3 PRIVATE 
-    _USE_MATH_DEFINES   # For M_PI and other math constants
-)
-
-# Ensure required headers are included
-target_compile_options(wow3 PRIVATE 
-    -include cfenv      # For floating-point exception handling
-)
 
 add_custom_target(wow3_target DEPENDS wow3)

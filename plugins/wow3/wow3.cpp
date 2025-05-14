@@ -8,14 +8,16 @@
 #include "MumblePlugin.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
+#include <iostream>
 #include <math.h>
 #include <memory>
 #include <string_view>
 
 static std::unique_ptr< Game > game;
 
-constexpr std::string_view WOW_EXE = "Wow.exe";
+constexpr std::string_view WOW_EXE = "wow.exe"; // lowercase
 
 mumble_error_t mumble_init(uint32_t) {
 	return MUMBLE_STATUS_OK;
@@ -76,13 +78,12 @@ uint32_t mumble_getFeatures() {
 	return MUMBLE_FEATURE_POSITIONAL;
 }
 
-// Helper function for Linux to check if a Wine process is running WoW
 #ifndef _WIN32
+// Helper function to check if a Wine process is running WoW
 bool isWineRunningWow(uint64_t pid) {
 	char cmdlinePath[256];
 	char buffer[512];
-	snprintf(cmdlinePath, sizeof(cmdlinePath), "/proc/%llu/cmdline",
-			 (unsigned long long) pid);
+	snprintf(cmdlinePath, sizeof(cmdlinePath), "/proc/%llu/cmdline", (unsigned long long) pid);
 
 	FILE *cmdlineFile = fopen(cmdlinePath, "r");
 	if (!cmdlineFile) {
@@ -95,8 +96,6 @@ bool isWineRunningWow(uint64_t pid) {
 	if (bytesRead == 0) {
 		return false;
 	}
-
-	// Ensure null-termination
 	buffer[bytesRead] = '\0';
 
 	// Make the buffer lowercase for case-insensitive comparison
@@ -109,18 +108,18 @@ bool isWineRunningWow(uint64_t pid) {
 #endif
 
 uint8_t mumble_initPositionalData(const char *const *programNames, const uint64_t *programPIDs, size_t programCount) {
-	auto ret = MUMBLE_PDEC_ERROR_TEMP;
-
-	return MUMBLE_PDEC_ERROR_PERM;
+	Mumble_PositionalDataErrorCode ret = MUMBLE_PDEC_ERROR_TEMP;
 
 	for (size_t i = 0; i < programCount; ++i) {
-		#ifdef _WIN32
-		if (strcmp(programNames[i], WOW_EXE.data()) != 0)
+#ifdef _WIN32
+		if (_stricmp(programNames[i], WOW_EXE.data()) != 0) {
 			continue;
-		#else
-		if (!isWineRunningWow(programPIDs[i]))
+		}
+#else
+		if (!isWineRunningWow(programPIDs[i])) {
 			continue;
-		#endif
+		}
+#endif
 
 		game = std::make_unique< Game >(programPIDs[i], programNames[i]);
 
@@ -162,7 +161,7 @@ bool mumble_fetchPositionalData(float *avatarPos, float *avatarDir, float *avata
 	uint8_t playerState = game->getPlayerState();
 	if (playerState != 1) {
 		// Return true to keep trying even when not in game
-		*contextPtr = "{}";
+		*contextPtr  = "{}";
 		*identityPtr = "{}";
 		return true;
 	}
@@ -173,42 +172,48 @@ bool mumble_fetchPositionalData(float *avatarPos, float *avatarDir, float *avata
 	avatarPos[0] = -avatarPosition[1];
 	avatarPos[1] = avatarPosition[2];
 	avatarPos[2] = avatarPosition[0];
+	for (int i = 0; i < 3; ++i) {
+		avatarPos[i] *= 0.9144f; // Scale yard to meter
+	}
 
 	// Get camera position
+	// WoW -> Mumble: X=Z, Y=-X, Z=Y
 	Vector3f cameraPosition = game->getCameraPosition();
-	cameraPos[0] = -cameraPosition[1];
-	cameraPos[1] = cameraPosition[2];
-	cameraPos[2] = cameraPosition[0];
+	cameraPos[0]            = -cameraPosition[1];
+	cameraPos[1]            = cameraPosition[2];
+	cameraPos[2]            = cameraPosition[0];
 
 	// Get avatar direction from heading
 	float avatarHeading = game->getAvatarHeading();
-	avatarDir[0] = -sinf(avatarHeading);
-	avatarDir[1] = 0.0f;
-	avatarDir[2] = cosf(avatarHeading);
+	avatarDir[0]        = -sinf(avatarHeading);
+	avatarDir[1]        = 0.0f;
+	avatarDir[2]        = cosf(avatarHeading);
 
 	// Avatar axis (up vector)
+	// WoW -> Mumble: X=Z, Y=-X, Z=Y
 	avatarAxis[0] = 0.0f;
 	avatarAxis[1] = 1.0f;
 	avatarAxis[2] = 0.0f;
 
 	// Camera direction (front vector)
+	// WoW -> Mumble: X=Z, Y=-X, Z=Y
 	Vector3f cameraFront = game->getCameraFront();
-	cameraDir[0] = -sinf(avatarHeading); // Use avatar heading for simplicity
-	cameraDir[1] = 0.0f;
-	cameraDir[2] = cosf(avatarHeading);
+	cameraDir[0]         = -sinf(avatarHeading); // Use avatar heading for simplicity
+	cameraDir[1]         = 0.0f;
+	cameraDir[2]         = cosf(avatarHeading);
 
 	// Camera axis (up vector)
+	// WoW -> Mumble: X=Z, Y=-X, Z=Y
 	Vector3f cameraTop = game->getCameraTop();
-	cameraAxis[0] = -cameraTop[1];
-	cameraAxis[1] = cameraTop[2];
-	cameraAxis[2] = cameraTop[0];
+	cameraAxis[0]      = -cameraTop[1];
+	cameraAxis[1]      = cameraTop[2];
+	cameraAxis[2]      = cameraTop[0];
 
 	// Get identity string
 	*identityPtr = game->getIdentity().c_str();
 
 	// Create context string
 	*contextPtr = game->getContext().c_str();
-
 
 	return true;
 }
