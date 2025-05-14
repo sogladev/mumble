@@ -33,3 +33,5 @@ target_compile_definitions(wow3 PRIVATE
 target_compile_options(wow3 PRIVATE 
     -include cfenv      # For floating-point exception handling
 )
+
+add_custom_target(wow3_target DEPENDS wow3)
