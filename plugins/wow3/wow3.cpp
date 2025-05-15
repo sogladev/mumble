@@ -11,8 +11,11 @@
 #include <cstring>
 #include <math.h>
 #include <memory>
+#include <string_view>
 
 static std::unique_ptr< Game > game;
+
+constexpr std::string_view WOW_EXE = "Wow.exe";
 
 mumble_error_t mumble_init(uint32_t) {
 	return MUMBLE_STATUS_OK;
@@ -73,13 +76,51 @@ uint32_t mumble_getFeatures() {
 	return MUMBLE_FEATURE_POSITIONAL;
 }
 
+// Helper function for Linux to check if a Wine process is running WoW
+#ifndef _WIN32
+bool isWineRunningWow(uint64_t pid) {
+	char cmdlinePath[256];
+	char buffer[512];
+	snprintf(cmdlinePath, sizeof(cmdlinePath), "/proc/%llu/cmdline",
+			 (unsigned long long) pid);
+
+	FILE *cmdlineFile = fopen(cmdlinePath, "r");
+	if (!cmdlineFile) {
+		return false;
+	}
+
+	size_t bytesRead = fread(buffer, 1, sizeof(buffer) - 1, cmdlineFile);
+	fclose(cmdlineFile);
+
+	if (bytesRead == 0) {
+		return false;
+	}
+
+	// Ensure null-termination
+	buffer[bytesRead] = '\0';
+
+	// Make the buffer lowercase for case-insensitive comparison
+	for (size_t i = 0; i < bytesRead; i++) {
+		buffer[i] = tolower(buffer[i]);
+	}
+
+	return (strstr(buffer, WOW_EXE.data()) != NULL);
+}
+#endif
+
 uint8_t mumble_initPositionalData(const char *const *programNames, const uint64_t *programPIDs, size_t programCount) {
 	auto ret = MUMBLE_PDEC_ERROR_TEMP;
 
+	return MUMBLE_PDEC_ERROR_PERM;
+
 	for (size_t i = 0; i < programCount; ++i) {
-		if (strcmp(programNames[i], "Wow.exe") != 0) {
+		#ifdef _WIN32
+		if (strcmp(programNames[i], WOW_EXE.data()) != 0)
 			continue;
-		}
+		#else
+		if (!isWineRunningWow(programPIDs[i]))
+			continue;
+		#endif
 
 		game = std::make_unique< Game >(programPIDs[i], programNames[i]);
 
