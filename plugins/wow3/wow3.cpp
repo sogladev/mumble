@@ -5,19 +5,14 @@
 
 #include "Game.h"
 
-#include "MumblePlugin.h"
-
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
-#include <iostream>
-#include <math.h>
+#include <cmath>
 #include <memory>
 #include <string_view>
 
 static std::unique_ptr< Game > game;
-
-constexpr std::string_view WOW_EXE = "wow.exe"; // lowercase
 
 mumble_error_t mumble_init(uint32_t) {
 	return MUMBLE_STATUS_OK;
@@ -27,9 +22,9 @@ void mumble_shutdown() {
 }
 
 MumbleStringWrapper mumble_getName() {
-	static const char name[] = "World of Warcraft Wrath of the Lich King 3.3.5a";
+	static constexpr char name[] = "World of Warcraft Wrath of the Lich King 3.3.5a";
 
-	MumbleStringWrapper wrapper;
+	MumbleStringWrapper wrapper{};
 	wrapper.data           = name;
 	wrapper.size           = strlen(name);
 	wrapper.needsReleasing = false;
@@ -52,9 +47,9 @@ mumble_version_t mumble_getVersion() {
 }
 
 MumbleStringWrapper mumble_getAuthor() {
-	static const char author[] = "MumbleDevelopers";
+	static constexpr char author[] = "MumbleDevelopers";
 
-	MumbleStringWrapper wrapper;
+	MumbleStringWrapper wrapper{};
 	wrapper.data           = author;
 	wrapper.size           = strlen(author);
 	wrapper.needsReleasing = false;
@@ -63,10 +58,10 @@ MumbleStringWrapper mumble_getAuthor() {
 }
 
 MumbleStringWrapper mumble_getDescription() {
-	static const char description[] = "Provides positional audio functionality for World of Warcraft. "
+	static constexpr char description[] = "Provides positional audio functionality for World of Warcraft. "
 									  "Identity is provided.";
 
-	MumbleStringWrapper wrapper;
+	MumbleStringWrapper wrapper{};
 	wrapper.data           = description;
 	wrapper.size           = strlen(description);
 	wrapper.needsReleasing = false;
@@ -83,14 +78,14 @@ uint32_t mumble_getFeatures() {
 bool isWineRunningWow(uint64_t pid) {
 	char cmdlinePath[256];
 	char buffer[512];
-	snprintf(cmdlinePath, sizeof(cmdlinePath), "/proc/%llu/cmdline", (unsigned long long) pid);
+	snprintf(cmdlinePath, sizeof(cmdlinePath), "/proc/%llu/cmdline", static_cast< unsigned long long >(pid));
 
 	FILE *cmdlineFile = fopen(cmdlinePath, "r");
 	if (!cmdlineFile) {
 		return false;
 	}
 
-	size_t bytesRead = fread(buffer, 1, sizeof(buffer) - 1, cmdlineFile);
+	const size_t bytesRead = fread(buffer, 1, sizeof(buffer) - 1, cmdlineFile);
 	fclose(cmdlineFile);
 
 	if (bytesRead == 0) {
@@ -98,12 +93,7 @@ bool isWineRunningWow(uint64_t pid) {
 	}
 	buffer[bytesRead] = '\0';
 
-	// Make the buffer lowercase for case-insensitive comparison
-	for (size_t i = 0; i < bytesRead; i++) {
-		buffer[i] = tolower(buffer[i]);
-	}
-
-	return (strstr(buffer, WOW_EXE.data()) != NULL);
+	return (strstr(buffer, WOW_EXE.data()) != nullptr);
 }
 #endif
 
@@ -126,8 +116,7 @@ uint8_t mumble_initPositionalData(const char *const *programNames, const uint64_
 		ret = game->init();
 		if (ret == MUMBLE_PDEC_OK) {
 			// Check if we can get player state
-			uint8_t state = game->getPlayerState();
-			if (state != 1) { // 1 is in-game state
+			if (const uint8_t state = game->getPlayerState(); state != 1) { // 1 is in-game state
 				ret = MUMBLE_PDEC_ERROR_TEMP;
 			}
 		}
@@ -158,8 +147,7 @@ bool mumble_fetchPositionalData(float *avatarPos, float *avatarDir, float *avata
 	std::fill_n(cameraAxis, 3, 0.f);
 
 	// Verify that the player is in-game (state == 1)
-	uint8_t playerState = game->getPlayerState();
-	if (playerState != 1) {
+	if (const uint8_t playerState = game->getPlayerState(); playerState != 1) {
 		// Return true to keep trying even when not in game
 		*contextPtr  = "{}";
 		*identityPtr = "{}";
@@ -167,7 +155,7 @@ bool mumble_fetchPositionalData(float *avatarPos, float *avatarDir, float *avata
 	}
 
 	// Get avatar position
-	Vector3f avatarPosition = game->getAvatarPosition();
+	const Vector3f avatarPosition = game->getAvatarPosition();
 	// WoW -> Mumble: X=Z, Y=-X, Z=Y
 	avatarPos[0] = -avatarPosition[1];
 	avatarPos[1] = avatarPosition[2];
@@ -178,13 +166,13 @@ bool mumble_fetchPositionalData(float *avatarPos, float *avatarDir, float *avata
 
 	// Get camera position
 	// WoW -> Mumble: X=Z, Y=-X, Z=Y
-	Vector3f cameraPosition = game->getCameraPosition();
+	const Vector3f cameraPosition = game->getCameraPosition();
 	cameraPos[0]            = -cameraPosition[1];
 	cameraPos[1]            = cameraPosition[2];
 	cameraPos[2]            = cameraPosition[0];
 
 	// Get avatar direction from heading
-	float avatarHeading = game->getAvatarHeading();
+	const float avatarHeading = game->getAvatarHeading();
 	avatarDir[0]        = -sinf(avatarHeading);
 	avatarDir[1]        = 0.0f;
 	avatarDir[2]        = cosf(avatarHeading);
@@ -197,14 +185,13 @@ bool mumble_fetchPositionalData(float *avatarPos, float *avatarDir, float *avata
 
 	// Camera direction (front vector)
 	// WoW -> Mumble: X=Z, Y=-X, Z=Y
-	Vector3f cameraFront = game->getCameraFront();
 	cameraDir[0]         = -sinf(avatarHeading); // Use avatar heading for simplicity
 	cameraDir[1]         = 0.0f;
 	cameraDir[2]         = cosf(avatarHeading);
 
 	// Camera axis (up vector)
 	// WoW -> Mumble: X=Z, Y=-X, Z=Y
-	Vector3f cameraTop = game->getCameraTop();
+	const Vector3f cameraTop = game->getCameraTop();
 	cameraAxis[0]      = -cameraTop[1];
 	cameraAxis[1]      = cameraTop[2];
 	cameraAxis[2]      = cameraTop[0];

@@ -16,6 +16,8 @@
 
 using Vector3f = std::array<float, 3>;
 
+constexpr std::string_view WOW_EXE = "Wow.exe"; // exact
+
 class Game {
 public:
     Mumble_PositionalDataErrorCode init();

@@ -11,19 +11,20 @@ Game::Game(const procid_t id, const std::string &name) : m_proc(id, name) {
 }
 
 Mumble_PositionalDataErrorCode Game::init() {
-	// Check if we can read the player state to verify memory access
-	// Disable below; m_ok = true is never set for "wine-preloader"
-	// if (!m_proc.isOk()) {
-		// return MUMBLE_PDEC_ERROR_TEMP;
-	// }
-	const Modules &modules = m_proc.modules();
-	const auto iter        = modules.find("Wow.exe");
-	if (iter == modules.cend()) {
+#ifdef _WIN32
+	// Only check m_proc on windows. m_ok = true is never set for "wine-preloader"
+	if (!m_proc.isOk()) {
 		return MUMBLE_PDEC_ERROR_TEMP;
 	}
-	
+#endif
+	const Modules &modules = m_proc.modules();
+	if (const auto iter = modules.find(WOW_EXE.data()); iter == modules.cend()) {
+		return MUMBLE_PDEC_ERROR_TEMP;
+	}
+
 	try {
-		uint8_t state = m_proc.peek< uint8_t >(STATE_ADDRESS);
+		// Check if we can read the player state to verify memory access
+		auto state = m_proc.peek< uint8_t >(STATE_ADDRESS);
 		return MUMBLE_PDEC_OK;
 	} catch (...) {
 		return MUMBLE_PDEC_ERROR_TEMP;
@@ -75,9 +76,8 @@ uint64_t Game::getLeaderGuid() const {
 }
 
 const std::string &Game::getIdentity() {
-	std::ostringstream stream;
-
 	try {
+		std::ostringstream stream;
 		const char *playerName = getPlayerName();
 
 		stream << "Name: " << (playerName ? playerName : "Unknown") << '\n';
@@ -91,10 +91,9 @@ const std::string &Game::getIdentity() {
 }
 
 const std::string &Game::getContext() {
-	std::ostringstream stream;
-
 	try {
-		uint32_t mapId = getMapId();
+		std::ostringstream stream;
+		const uint32_t mapId = getMapId();
 
 		stream << "Map ID: " << mapId << '\n';
 		stream << "Leader GUID: " << getLeaderGuid();
