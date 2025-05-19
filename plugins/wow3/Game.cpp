@@ -12,10 +12,10 @@ Game::Game(const procid_t id, const std::string &name) : m_proc(id, name) {
 
 Mumble_PositionalDataErrorCode Game::init() {
 	// Check if we can read the player state to verify memory access
-	if (!m_proc.isOk()) {
-		return MUMBLE_PDEC_ERROR_TEMP;
-	}
-
+	// Disable below; m_ok = true is never set for "wine-preloader"
+	// if (!m_proc.isOk()) {
+		// return MUMBLE_PDEC_ERROR_TEMP;
+	// }
 	const Modules &modules = m_proc.modules();
 	const auto iter        = modules.find("Wow.exe");
 	if (iter == modules.cend()) {
