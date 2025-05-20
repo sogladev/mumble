@@ -6,9 +6,9 @@
 #include "Game.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
-#include <cmath>
 #include <memory>
 #include <string_view>
 
@@ -59,7 +59,7 @@ MumbleStringWrapper mumble_getAuthor() {
 
 MumbleStringWrapper mumble_getDescription() {
 	static constexpr char description[] = "Provides positional audio functionality for World of Warcraft. "
-									  "Identity is provided.";
+										  "Identity is provided.";
 
 	MumbleStringWrapper wrapper{};
 	wrapper.data           = description;
@@ -167,15 +167,15 @@ bool mumble_fetchPositionalData(float *avatarPos, float *avatarDir, float *avata
 	// Get camera position
 	// WoW -> Mumble: X=Z, Y=-X, Z=Y
 	const Vector3f cameraPosition = game->getCameraPosition();
-	cameraPos[0]            = -cameraPosition[1];
-	cameraPos[1]            = cameraPosition[2];
-	cameraPos[2]            = cameraPosition[0];
+	cameraPos[0]                  = -cameraPosition[1];
+	cameraPos[1]                  = cameraPosition[2];
+	cameraPos[2]                  = cameraPosition[0];
 
 	// Get avatar direction from heading
 	const float avatarHeading = game->getAvatarHeading();
-	avatarDir[0]        = -sinf(avatarHeading);
-	avatarDir[1]        = 0.0f;
-	avatarDir[2]        = cosf(avatarHeading);
+	avatarDir[0]              = -sinf(avatarHeading);
+	avatarDir[1]              = 0.0f;
+	avatarDir[2]              = cosf(avatarHeading);
 
 	// Avatar axis (up vector)
 	// WoW -> Mumble: X=Z, Y=-X, Z=Y
@@ -185,16 +185,16 @@ bool mumble_fetchPositionalData(float *avatarPos, float *avatarDir, float *avata
 
 	// Camera direction (front vector)
 	// WoW -> Mumble: X=Z, Y=-X, Z=Y
-	cameraDir[0]         = -sinf(avatarHeading); // Use avatar heading for simplicity
-	cameraDir[1]         = 0.0f;
-	cameraDir[2]         = cosf(avatarHeading);
+	cameraDir[0] = -sinf(avatarHeading); // Use avatar heading for simplicity
+	cameraDir[1] = 0.0f;
+	cameraDir[2] = cosf(avatarHeading);
 
 	// Camera axis (up vector)
 	// WoW -> Mumble: X=Z, Y=-X, Z=Y
 	const Vector3f cameraTop = game->getCameraTop();
-	cameraAxis[0]      = -cameraTop[1];
-	cameraAxis[1]      = cameraTop[2];
-	cameraAxis[2]      = cameraTop[0];
+	cameraAxis[0]            = -cameraTop[1];
+	cameraAxis[1]            = cameraTop[2];
+	cameraAxis[2]            = cameraTop[0];
 
 	// Get identity string
 	*identityPtr = game->getIdentity().c_str();

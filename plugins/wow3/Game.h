@@ -39,7 +39,7 @@ public:
     // Generate context string
     const std::string& getContext();
 
-    Game(const procid_t id, const std::string &name);
+    Game(procid_t id, const std::string &name);
 
 protected:
     // Static memory addresses for WoW
@@ -51,9 +51,9 @@ protected:
     static constexpr procptr_t CAMERA_TOP_ADDRESS     = 0x00ADF554;
     static constexpr procptr_t PLAYER_ADDRESS         = 0x00C79D18;
     static constexpr procptr_t MAPID_ADDRESS          = 0x00AB63BC;
-    static constexpr procptr_t LEADERGUID_ADDRESS     = 0x00BD1968;
+	static constexpr procptr_t LEADERGUID_ADDRESS     = 0x00BD1968;
 
-    std::string m_identity;
+	std::string m_identity;
     std::string m_context;
     ProcessWindows m_proc;
 };
